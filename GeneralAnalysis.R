@@ -1,28 +1,32 @@
 # Version 1.0
-readString <- function(pmt)
-{ 
-  n <- readline(prompt = pmt)
-  return(as.character(n))
+
+# A function to calculate hours.
+hrs <- function(u) {
+  x <- u * 3600
+  return(x)
 }
-Versionpmt = "Please enter the version number of this analysis (e.g. Version 1.0): "
-versionNum = readString(Versionpmt)
-wdPmt = "Please enter the working directory (where your files are located): "
-wd = readString(wdPmt)
+# The function calculates minutes.
+mns <- function(m) {
+  x <- m * 60
+  return(x)
+}
+
+versionNum = readLines("inputs.txt")[1]
+paste("The version of this analysis is", versionNum)
+
+wd = readLines("inputs.txt")[2]
 setwd(wd)
-inputTestCmtPmt = "Please enter the input test comments: "
-inputTestCmts = readString(inputTestCmtPmt)
+
+inputTestCmts = readLines("inputs.txt")[3]
 paste(inputTestCmts)
 # input test comments:
 # Cross-calibration test of 8508As TE0391 and TE0377 using Au wire Zero and USB3 00006 10 kohms standard resistor.
 # TE0391 was in it's rack and TE0377 was on the bench next to TE0391's rack in SSEC 518.
 #
 # 8508A-VIs-Z.rtf
-fstInputAssoFilePmt = "Please enter the associated files (the files you are going to use) 1: "
-fstInputAssoFile = readString(fstInputAssoFilePmt)
-sndInputAssoFilePmt = "Please enter the associated files (the files you are going to use) 2: "
-sndInputAssoFile = readString(sndInputAssoFilePmt)
-srdInputAssoFilePmt = "Please enter the associated files (the files you are going to use) 3: "
-srdInputAssoFile = readString(srdInputAssoFilePmt)
+fstInputAssoFile = readLines("inputs.txt")[4]
+sndInputAssoFile = readLines("inputs.txt")[5]
+srdInputAssoFile = readLines("inputs.txt")[6]
 paste(fstInputAssoFile, "\n", sep = "")
 paste(sndInputAssoFile, "\n", sep = "")
 paste(srdInputAssoFile, "\n", sep = "")
@@ -32,8 +36,7 @@ paste(srdInputAssoFile, "\n", sep = "")
 # TE0377-X_OHMS-4W_160915T0931.csv
 # RH520_TE0384_9-16-2016_2-20_PM.csv
 #
-TEfilePmt = "Please enter the TE file name again: "
-TEfile = readString(TEfilePmt)
+TEfile = readLines("inputs.txt")[7]
 TEfileHd = readLines(TEfile)[2:5]
 paste(TEfileHd)
 # read from file
@@ -54,8 +57,7 @@ paste("Conventions: USB3-06 is a shortened version of  USB3 Standard Resistor SN
 # In the Cross Correlation plots, only negative lags are real for these tests.
 #
 
-promptForRH520 = "Please enter the name of RH520 file again (with the extension) : "
-dtName1 = readString(promptForRH520)
+dtName1 = readLines("inputs.txt")[8]
 dt1 = read.csv(dtName1, header = T)
 dt2 = read.csv(TEfile, skip = 5, header = TRUE)
 # Create a file to store the tables.
@@ -68,6 +70,18 @@ paste("input offset:",
       "Positive and negative offset times mean that the raw data's time stamp is ahead of or lagging behind, respectively with respects to standard time.", 
       "ie, Offset = 10 seconds means that the raw data's time stamp was 2016-09-15 T09:31:17 when the CST time was actually 2016-09-15 T09:31:07. ", 
       "test data time offset: 0 second ", "RH520 time offset: 3600 seconds", sep = "\n#")
+
+offsetRH = readLines("inputs.txt")[9]
+offsethr = as.numeric(strsplit(offsetRH, ":")[[1]][1])
+offsetmn = as.numeric(strsplit(offsetRH, ":")[[1]][2])
+offsetsec = as.numeric(strsplit(offsetRH, ":")[[1]][3])
+overall_offset_RH = hrs(offsethr) + mns(offsetmn) + offsetsec
+
+offsetTE = readLines("inputs.txt")[10]
+offsethr = as.numeric(strsplit(offsetTE, ":")[[1]][1])
+offsetmn = as.numeric(strsplit(offsetTE, ":")[[1]][2])
+offsetsec = as.numeric(strsplit(offsetTE, ":")[[1]][3])
+overall_offset_TE = hrs(offsethr) + mns(offsetmn) + offsetsec
 # input offset:
 # Positive and negative offset times mean that the raw data's time stamp is ahead of or lagging behind, respectively with respects to standard time.
 # ie, Offset = 10 seconds means that the raw data's time stamp was 2016-09-15 T09:31:17 when the CST time was actually 2016-09-15 T09:31:07.
@@ -83,17 +97,36 @@ paste(TEfile, "Statistical data End Date/Time:", dt2$Date[133], dt2$Time[133], s
 # RH520_TE0384_9-16-2016_2-20_PM.csv Raw data previous 24 hour Date/Time: 9/14/2016 , 10:32:44
 date = as.character(dt1$DATE)
 time = as.character(dt1$TIME)
+rh_date_time = paste(date, time, sep = " ")
+rh_date_time = strptime(rh_date_time, format = "%m-%d-%Y %H:%M:%S", tz = "America/Chicago")
+rh_date_time = rh_date_time - overall_offset_RH
+date = as.character(dt2$Date)
+time = as.character(dt2$Time)
+te_date_time = paste(date, time, sep = " ")
+te_date_time = strptime(te_date_time, format = "%m/%d/%Y %H:%M:%S", tz = "America/Chicago")
+te_date_time = te_date_time - overall_offset_TE
 
-oneday_prev_bgn = intersect(which(date == "09-14-2016"), which(time == "10:32:00"))
-sig_end = intersect(which(date == "09-15-2016"), which(time == "11:07:00"))
+# this bunch of code only works when the seconds have two digits. 
+bgn_date_time = paste(dt2$Date[6], dt2$Time[6], sep = " ")
+bgn_date_time = strptime(bgn_date_time, format = "%m/%d/%Y %H:%M:%S", tz = "America/Chicago")
+oneday_prev_bgn_date_time = bgn_date_time - hrs(24)
+temp_string = as.character(oneday_prev_bgn_date_time)
+temp_string = paste(substr(temp_string, 1, nchar(temp_string)-3), "00", sep = ":")
+oneday_prev_bgn_date_time = strptime(temp_string, format = "%Y-%m-%d %H:%M:%S", tz = "America/Chicago")
+oneday_prev_bgn = which(oneday_prev_bgn_date_time == rh_date_time)
+
+# The reason I didn't directly use corresponding date and time to find the index is that there are irregular spaces in the date and time strings, so I transform to time object to standardize the format. 
+sig_end_date_time = paste(dt2$Date[133], dt2$Time[133], sep = " ")
+sig_end_date_time = strptime(sig_end_date_time, format = "%m/%d/%Y %H:%M:%S", tz = "America/Chicago")
+temp_string = as.character(sig_end_date_time)
+temp_string = paste(substr(temp_string, 1, nchar(temp_string)-3), "00", sep = ":")
+sig_end_date_time = strptime(temp_string, format = "%Y-%m-%d %H:%M:%S", tz = "America/Chicago")
+sig_end_date_time = sig_end_date_time + mns(1)
+sig_end = which(sig_end_date_time == rh_date_time)
 RH520_oneday_prev = dt1[oneday_prev_bgn:sig_end, ]
 # Transform the time to characters
 time1 = as.character(RH520_oneday_prev$TIME)
-# A function to calculate hours.
-hrs <- function(u) {
-  x <- u * 3600
-  return(x)
-}
+
 # Transform the date to characters
 date1 = as.character(RH520_oneday_prev$DATE)
 # Join the characters of time and date together
@@ -123,9 +156,12 @@ plot(time_axis1, humidity1, xlab = "Time (Day/Time)", ylab = "RH520 Relative Hum
 paste("Start time: ", time_axis1[1], "End time: ", time_axis1[length(time_axis1)])
 
 # RH520_TE0384_9-16-2016_2-20_PM.csv Raw data previous 6 hour Date/Time: 9/15/2016 , 09:07:00
-sixHr_prev_bgn = intersect(which(date == "09-15-2016"), which(time == "4:32:00"))
-# sig_end = intersect(which(date == "09-15-2016"), which(time == "11:07:00"))
+sixHr_prev_bgn_date_time = bgn_date_time - hrs(6)
+temp_string = as.character(sixHr_prev_bgn_date_time)
+sixHr_prev_bgn_date_time = paste(substr(temp_string, 1, nchar(temp_string)-3), "00", sep = ":")
+sixHr_prev_bgn = which(sixHr_prev_bgn_date_time == rh_date_time)
 RH520_6hour_prev = dt1[sixHr_prev_bgn:sig_end, ]
+
 # Read in the time and dates and transform to characters.
 time2 = as.character(RH520_6hour_prev$TIME)
 date2 = as.character(RH520_6hour_prev$DATE)
@@ -166,14 +202,17 @@ rownames(summary) = c("max", "min", "max - min", "mean", "standard deviation", "
 # Include the information about this table in the file.
 info = paste("\n", "(", tableIndex, ")", "# 1.3.5 Statistics for 6 hours before test start to end of test\n")
 # Append the information as title
-cat(info, file = "TE0377-X_OHMS-4W_160915T0931.txt", append = TRUE)
+cat(info, file = txt, append = TRUE)
 tableIndex = tableIndex + 1
 write.table(summary, file = "TE0377-X_OHMS-4W_160915T0931.txt", append = TRUE)
 summ = as.table(summary)
 print("# 1.3.5 Statistics for 6 hours before test start to end of test")
 summ
 # RH520_TE0384_9-16-2016_2-20_PM.csv Raw data by start Date/Time: 9/15/2016 , 10:32:00
-bystart_bgn = intersect(which(date == "09-15-2016"), which(time == "10:32:00"))
+bystart_bgn_date_time = bgn_date_time
+temp_string = as.character(bystart_bgn_date_time)
+bystart_bgn_date_time = paste(substr(temp_string, 1, nchar(temp_string)-3), "00", sep = ":")
+bystart_bgn = which(bystart_bgn_date_time == rh_date_time)
 RH520_bystart = dt1[bystart_bgn:sig_end, ]
 temperature3 = as.numeric(as.character(RH520_bystart$TEMP))
 humidity3 = as.numeric(as.character(RH520_bystart$RH))
@@ -185,7 +224,7 @@ summary = matrix(c(round(max(temperature3), digits = 1), round(max(humidity3), d
 colnames(summary) = c("temperature", "humidity")
 rownames(summary) = c("max", "min", "max - min", "mean", "standard deviation", "SDoM", "sample size")
 info = paste("\n", "(", tableIndex, ")", "# 1.3.6  Statistics for just before test start to just past end of test\n")
-cat(info, file = "TE0377-X_OHMS-4W_160915T0931.txt", append = TRUE)
+cat(info, file = txt, append = TRUE)
 tableIndex = tableIndex + 1
 write.table(summary, file = "TE0377-X_OHMS-4W_160915T0931.txt", append = TRUE)
 summ = as.table(summary)
@@ -244,7 +283,7 @@ summary = matrix(c(round(max(thermisTemp_sig), digits = 3), round(min(thermisTem
 colnames(summary) = c("thermisTemp_sig")
 rownames(summary) = c("max", "min", "max - min", "mean", "standard deviation", "SDoM", "sample size")
 info = paste("\n", "(", tableIndex, ")", "# 2.2.4  Statistical data for the USB3-06T Temperature.\n")
-cat(info, file = "TE0377-X_OHMS-4W_160915T0931.txt", append = TRUE)
+cat(info, file = txt, append = TRUE)
 tableIndex = tableIndex + 1
 write.table(summary, file = "TE0377-X_OHMS-4W_160915T0931.txt", append = TRUE)
 summ = as.table(summary)
@@ -260,11 +299,7 @@ time_axis5 = time_axis4[6:134]
 mean_cadence = (time_axis5[length(time_axis5)] - time_axis5[1]) / (length(time_axis5) - 1)
 # Calculate the mean cadence in minutes.
 mean_cadence_in_min = as.numeric(mean_cadence)
-# The function calculates minutes.
-mns <- function(m) {
-  x <- m * 60
-  return(x)
-}
+
 itpltd_cad = c(time_axis5[1])
 # Interpolate the first time point.
 new_cad = itpltd_cad - mns(mean_cadence_in_min)
@@ -321,7 +356,7 @@ summary = matrix(c(round(max(Au_zero_sig), digits = 3), round(min(Au_zero_sig), 
 colnames(summary) = c("Au_zero_sig")
 rownames(summary) = c("max", "min", "max - min", "mean", "standard deviation", "SDoM", "sample size")
 info = paste("\n", "(", tableIndex, ")", "# 4.1.5  Au_Zero Statistical Data\n")
-cat(info, file = "TE0377-X_OHMS-4W_160915T0931.txt", append = TRUE)
+cat(info, file = txt, append = TRUE)
 tableIndex = tableIndex + 1
 write.table(summary, file = "TE0377-X_OHMS-4W_160915T0931.txt", append = TRUE)
 summ = as.table(summary)
@@ -385,7 +420,7 @@ summary = matrix(c(round(max(USB3_06R_sig), digits = 3), round(min(USB3_06R_sig)
 colnames(summary) = c("USB3_06R_sig")
 rownames(summary) = c("max", "min", "max - min", "mean", "standard deviation", "SDoM", "sample size")
 info = paste("\n", "(", tableIndex, ")", "# 5.1.5 USB3-06R Statistical Data\n")
-cat(info, file = "TE0377-X_OHMS-4W_160915T0931.txt", append = TRUE)
+cat(info, file = txt, append = TRUE)
 tableIndex = tableIndex + 1
 write.table(summary, file = "TE0377-X_OHMS-4W_160915T0931.txt", append = TRUE)
 summ = as.table(summary)
